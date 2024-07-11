@@ -17,4 +17,16 @@ Findings:
 
 4)The highest percentage of people who got vaccinated were in US (68.76%)
 
+NASHVILLE HOUSE PROJECT
+
+Summary
+
+I have used the data available on Kaggle for Nashville Housing
+I have used SQL Server to standardize date formats, putting address components in individual columns, update tables, adding columns, removing duplicates
+
+Data Source:
+
+www.kaggle.com
+
+
 
