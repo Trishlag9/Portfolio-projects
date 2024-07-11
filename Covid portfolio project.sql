@@ -25,10 +25,10 @@ WHERE location like 'India%'
 ORDER BY 1,2
 
 --Countries with highest infection rate compared to population
-SELECT location,population,MAX(total_cases) as highestInfectionCount,MAX(ROUND((total_cases/population*100),2) as PercentagePopulationAffected
+SELECT location,population,MAX(total_cases) as highestInfectionCount,MAX(ROUND((total_cases/population*100),2)) as PercentagePopulationInfected
 FROM CovidDeaths
-WHERE location like 'India%'
-GROUP BY 1,2
+GROUP BY location,population
+ORDER BY PercentagePopulationInfected DESC
 
 --Show continents with highest death count per population
 SELECT continent,MAX(cast(Total_deaths as int)) as TotalDeathCount
@@ -38,9 +38,17 @@ GROUP BY continent
 ORDER BY TotalDeathCount DESC
 
 --Group by continent
-SELECT location,MAX(cast(Total_deaths as int)) as TotalDeathCount
+SELECT location,SUM(cast(new_deaths as int)) as TotalDeathCount
 FROM CovidDeaths
 WHERE continent IS NOT NULL
+GROUP BY location
+ORDER BY TotalDeathCount DESC
+
+  --Excluding World, International and EU
+  SELECT location,SUM(cast(New_deaths as int)) as TotalDeathCount
+FROM CovidDeaths
+WHERE continent IS NULL
+AND location NOT IN ('World','International','European Union')
 GROUP BY location
 ORDER BY TotalDeathCount DESC
 
@@ -52,7 +60,37 @@ WHERE continent IS NOT NULL
 --GROUP BY date
 ORDER BY 1,2
 
+--Joining both excel files, finding total ppltn vs vaccinations
+  
+SELECT dea.continent,dea.location,dea.date,dea.population,vac.new_vaccinations,
+  SUM(CAST(vac.new_vaccinations as int)) OVER (PARTITION BY dea.location ORDER BY dea.location,dea.date) as rolling_people_vaccinated
+FROM CovidDeaths dea
+JOIn CovidVaccinations vac
+ON dea.date=vac.date
+AND dea.location=vac.location
+WHERE dea.continent IS NOT NULL
+ORDER BY 2,3
+
+---Finding the %, hence also making a CTE
+
+WITH PopvsVac (continent,Location,Date,Population,New_Vaccinations,RollingPeopleVaccinated)
+AS (SELECT dea.continent,dea.location,dea.date,dea.population,
+vac.new_vaccinations,
+SUM(CAST(vac.new_vaccinations as int)) OVER (PARTITION BY dea.location ORDER BY dea.location,dea.date) as RollingPeopleVaccinated
+FROM CovidDeaths dea
+JOIN CovidVaccinations vac
+ON dea.location=vac.location
+AND dea.date=vac.date
+WHERE dea.continent IS NOT NULL
+)
+SELECT *,ROUND((RollingPeopleVaccinated/population*100,2)
+From PopVsVac
+--WHERE RollingPeopleVaccinated IS NOT NULL
+--ORDER BY 6 DESC
+
+
 --TEMP table
+  
 DROP table if exists #PercentPopulationVaccinated
 CREATE TABLE #PercentPopulationVaccinated
 (Continent nvarchar(255),
